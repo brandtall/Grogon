@@ -24,13 +24,13 @@ load-tester-1  | 2025/11/22 09:35:11 Current Throughput: 78448 QPS
 
 Normally, using a regular "1 connection per OS thread" model is problematic as we can easily run out of memory. By default, a thread gets allocated 1MB of stack memory on Windows and 8MB on Linux. For our case of 10k concurrent connections, we are talking about **10GB to 80GB of memory** just for stacks.
 
-To circumvent this, proxy servers usually use event loops (non blocking I/O) to handle N connections per OS thread, but this complicates the logic. However, with Go, Goroutines are an out of the box solution. They are managed by the Go runtime and default to a **2KB stack**, making them extremely lightweight (which Go devs brag about).
+To circumvent this, proxy servers usually use event loops (non blocking I/O) to handle N connections per OS thread, but this complicates the logic. However, with Go, Goroutines are an out of the box solution. They are managed by the Go runtime and default to a **2KB stack**, making them extremely lightweight.
 
 For this use case, Go is more than powerful enough to handle 10k+ connections on modest hardware.
 
 ### Memory Optimization
 
-Another bottleneck hit when handling a high number of concurrent connections is Garbage Collection (C is so based), particularly when we are continuously allocating buffers for copying data.
+Another bottleneck hit when handling a high number of concurrent connections is Garbage Collection, particularly when we are continuously allocating buffers for copying data.
 
 This is where `sync.Pool` comes in. Instead of continuously allocating new memory buffers and counting on the GC to reclaim them (which causes CPU spikes), we use a shared pool of buffers.
 
@@ -49,7 +49,7 @@ We also handle **graceful shutdown** through syscalls (`SIGINT`/`SIGTERM`) and `
 ### Prerequisites
 
   * **Docker & Docker Compose**
-  * Linux/WSL2/macOS (you are free to use Windows as well 🤷)
+  * Linux/WSL2/macOS
 
 ### 1\. Installation
 
