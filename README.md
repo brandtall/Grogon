@@ -11,12 +11,13 @@ A high throughput, resilient TCP load balancer built with Go routines.
 ### Load Test Logs
 
 ```bash
-load-tester-1  | 2025/11/22 09:35:06 Current Throughput: 79718 QPS
-load-tester-1  | 2025/11/22 09:35:07 Current Throughput: 80343 QPS
-load-tester-1  | 2025/11/22 09:35:08 Current Throughput: 82564 QPS
-load-tester-1  | 2025/11/22 09:35:09 Current Throughput: 79643 QPS
-load-tester-1  | 2025/11/22 09:35:10 Current Throughput: 74912 QPS
-load-tester-1  | 2025/11/22 09:35:11 Current Throughput: 78448 QPS
+load-tester-1  | 2025/11/22 11:23:24 Starting Latency & Load Test against gorgon-proxy:8080...
+load-tester-1  | 2025/11/22 11:23:25 QPS: 71454 | P50: 622.513µs | P99: 2.057115ms
+load-tester-1  | 2025/11/22 11:23:26 QPS: 74160 | P50: 619.055µs | P99: 1.829084ms
+load-tester-1  | 2025/11/22 11:23:27 QPS: 77644 | P50: 590.557µs | P99: 1.680675ms
+load-tester-1  | 2025/11/22 11:23:28 QPS: 75636 | P50: 593.431µs | P99: 1.885624ms
+load-tester-1  | 2025/11/22 11:23:29 QPS: 77149 | P50: 598.014µs | P99: 1.705881ms
+load-tester-1  | 2025/11/22 11:23:30 QPS: 74555 | P50: 598.306µs | P99: 1.975828ms
 ```
 
 ## Architecture
