@@ -4,8 +4,9 @@ A high throughput, resilient TCP load balancer built with Go routines.
 
 ## Benchmarks
 
-**Sustaining \~80,000 QPS on a single node.**
-<img width="2238" height="1186" alt="image" src="https://github.com/user-attachments/assets/fad2eb8b-4fbe-40d9-b8b1-236a3daf56e7" /> 
+**Sustaining \~80,000 QPS on a single node. w/ <10ms P99 latency**
+<img width="2025" height="853" alt="image" src="https://github.com/user-attachments/assets/e29891c0-6530-4599-bdc7-25f19ff59606" />
+
 
 ### Load Test Logs
 
