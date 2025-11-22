@@ -3,8 +3,8 @@ package main
 import (
 	"log"
 	"net"
+	"sort"
 	"sync"
-	"sync/atomic"
 	"time"
 )
 
@@ -16,9 +16,9 @@ const (
 
 func main() {
 	var wg sync.WaitGroup
-	var ops uint64 = 0
+	latencyChan := make(chan time.Duration, 100000)
 
-	log.Printf("Starting Load Test against %s with %d clients...", TARGET, CONCURRENT_CLIENTS)
+	log.Printf("Starting Latency & Load Test against %s...", TARGET)
 
 	deadline := time.Now().Add(TEST_DURATION)
 
@@ -38,6 +38,8 @@ func main() {
 			readBuf := make([]byte, 1024)
 
 			for time.Now().Before(deadline) {
+				reqStart := time.Now()
+
 				_, err := proxyConn.Write(payload)
 				if err != nil {
 					log.Printf("Client %d: Write Error: %v", id, err)
@@ -50,18 +52,43 @@ func main() {
 					return
 				}
 
-				atomic.AddUint64(&ops, 1)
+				select {
+				case latencyChan <- time.Since(reqStart):
+				default:
+				}
 			}
 		}(i)
 	}
 
 	go func() {
-		var lastOps uint64 = 0
-		for time.Now().Before(deadline) {
-			time.Sleep(1 * time.Second)
-			currentOps := atomic.LoadUint64(&ops)
-			log.Printf("Current Throughput: %d QPS", currentOps-lastOps)
-			lastOps = currentOps
+		ticker := time.NewTicker(1 * time.Second)
+		defer ticker.Stop()
+
+		samples := make([]time.Duration, 0, 80000)
+
+		for {
+			select {
+			case d := <-latencyChan:
+				samples = append(samples, d)
+
+			case <-ticker.C:
+				count := len(samples)
+				if count == 0 {
+					continue
+				}
+
+				sort.Slice(samples, func(i, j int) bool { return samples[i] < samples[j] })
+
+				p99Index := int(float64(count) * 0.99)
+				p99 := samples[p99Index]
+				p50 := samples[int(float64(count)*0.50)]
+
+				log.Printf("QPS: %d | P50: %v | P99: %v", count, p50, p99)
+
+				samples = samples[:0]
+			case <-time.After(TEST_DURATION + 1*time.Second):
+				return
+			}
 		}
 	}()
 

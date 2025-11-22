@@ -28,11 +28,12 @@ var bufferPool = sync.Pool{
 }
 
 type proxyMetrics struct {
-	current_active_connections  prometheus.Gauge
-	total_connections_handled   prometheus.Counter
-	total_connection_failures   *prometheus.CounterVec
-	connection_duration_seconds prometheus.Histogram
-	bytes_transferred           prometheus.Counter
+	current_active_connections     prometheus.Gauge
+	total_connections_handled      prometheus.Counter
+	total_connection_failures      *prometheus.CounterVec
+	connection_duration_seconds    prometheus.Histogram
+	upstream_dial_duration_seconds prometheus.Histogram
+	bytes_transferred              prometheus.Counter
 }
 
 func NewMetrics(reg prometheus.Registerer) *proxyMetrics {
@@ -61,6 +62,13 @@ func NewMetrics(reg prometheus.Registerer) *proxyMetrics {
 				Buckets: prometheus.LinearBuckets(0.1, 0.1, 20),
 			},
 		),
+		upstream_dial_duration_seconds: prometheus.NewHistogram(
+			prometheus.HistogramOpts{
+				Name:    "upstream_dial_duration_seconds",
+				Help:    "Time taken to dial upstream server",
+				Buckets: []float64{0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5},
+			},
+		),
 		bytes_transferred: prometheus.NewCounter(
 			prometheus.CounterOpts{
 				Name: "bytes_transferred_total",
@@ -72,6 +80,7 @@ func NewMetrics(reg prometheus.Registerer) *proxyMetrics {
 	reg.MustRegister(metrics.total_connections_handled)
 	reg.MustRegister(metrics.total_connection_failures)
 	reg.MustRegister(metrics.connection_duration_seconds)
+	reg.MustRegister(metrics.upstream_dial_duration_seconds)
 	reg.MustRegister(metrics.bytes_transferred)
 	return metrics
 }
@@ -131,6 +140,7 @@ func main() {
 		wg.Add(1)
 		go handleConnection(clientConn, serverProvider, &wg, metrics)
 	}
+	wg.Wait()
 }
 
 func handleConnection(clientConn net.Conn, provider IServerProvider, wg *sync.WaitGroup, metrics *proxyMetrics) {
@@ -154,7 +164,10 @@ func handleConnection(clientConn net.Conn, provider IServerProvider, wg *sync.Wa
 
 	metrics.total_connections_handled.Inc()
 
+	dialStart := time.Now()
 	serverConn, err := net.DialTimeout("tcp", upstreamServer, DIAL_TIMEOUT)
+	metrics.upstream_dial_duration_seconds.Observe(time.Since(dialStart).Seconds())
+
 	if err != nil {
 		metrics.total_connection_failures.WithLabelValues("dial_error").Inc()
 		log.Printf("Failed to dial upstream '%s': %v", upstreamServer, err)
